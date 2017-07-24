@@ -4,6 +4,7 @@ import matplotlib.image as mpimg
 import numpy as np
 import cv2
 from skimage.feature import hog
+from scipy.ndimage.measurements import label
 
 def convert_color(image, colorspace):
     if colorspace != 'RGB':
@@ -165,6 +166,85 @@ def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
     # Iterate through the bounding boxes
     for bbox in bboxes:
         # Draw a rectangle given bbox coordinates
-        cv2.rectangle(imcopy, bbox[0], bbox[1], color, thick)
+        cv2.rectangle(imcopy, bbox.get_start_pt(), bbox.get_end_pt(), color, thick)
     # Return the image copy with boxes drawn
     return imcopy
+
+class BoundingBox(object):
+
+    def __init__(self, start_pt, width, height=None, label="", confidence=1.):
+        self.label = label
+        self.confidence = confidence
+        self.start_pt = start_pt
+        self.width = width
+
+        if height:
+            self.height = height
+        else:
+            self.height = width
+        #print(self.start_pt)
+        #print(self.width)
+
+    def get_start_pt(self):
+        # return starting point as (x, y)
+        return self.start_pt
+
+    def get_end_pt(self):
+        x = self.start_pt[0] + self.width
+        y = self.start_pt[1] + self.height
+        return (x, y)
+
+
+class HeatMap(object):
+
+    def __init__(self, height, width):
+        self.height = height
+        self.width = width
+        self.heat = np.zeros([height, width]).astype(np.float)
+        self.threshold = 0
+
+    def add_heat(self, bbox_list):
+        # Iterate through list of bboxes
+        #print("ah", self.heat.shape)
+        for box in bbox_list:
+            # Add += 1 for all pixels inside each bbox
+            # Assuming each "box" takes the form ((x1, y1), (x2, y2))
+            start = box.get_start_pt()
+            stop = box.get_end_pt()
+            self.heat[start[1]:stop[1], start[0]:stop[0]] += 1
+            #print("ah2", self.heat.max())
+        return self
+
+    def apply_threshold(self, threshold):
+        # Zero out pixels below the threshold
+        self.threshold = threshold
+        return self
+
+    def get_visual(self):
+        #print(self.heat)
+        thresh_heat = np.copy(self.heat)
+        #print(thresh_heat)
+        thresh_heat[thresh_heat < self.threshold] = 0
+        return thresh_heat
+
+    def get_labeled_bboxes(self):
+        # Iterate through all detected cars
+        labels = label(self.get_visual())
+        bboxes = []
+        for car_number in range(1, labels[1] + 1):
+            # Find pixels with each car_number label value
+            nonzero = (labels[0] == car_number).nonzero()
+            # Identify x and y values of those pixels
+            nonzeroy = np.array(nonzero[0])
+            nonzerox = np.array(nonzero[1])
+            # Define a bounding box based on min/max x and y
+            start_pt = (np.min(nonzerox), np.min(nonzeroy))
+            width = np.max(nonzerox) - start_pt[0]
+            height = np.max(nonzeroy) - start_pt[1]
+            bboxes.append(BoundingBox(start_pt=start_pt, width=width, height=height, label=str(car_number)))
+        return bboxes
+
+
+
+
+
