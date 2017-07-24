@@ -39,7 +39,11 @@ Notebook cell 4 has all of the parameters split out and I tried various combinat
 
 #### 3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
-I trained a linear SVM using...
+I trained a linear SVM using in cell 7 of the notebook. In addition to the HOG features, I used spatial color features and a histogram of colors which were joined into a single feature vector of 2052 parameters.
+
+I also created a StandardScaler() that was used to scale all the features of the training set, and was then used later for the test video frames.
+
+---
 
 ### Sliding Window Search
 
@@ -77,9 +81,9 @@ See the HeatMap class in utils.py
 
 ---
 
-###Discussion
+### Discussion
 
-####1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+#### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
 There are still too many false positives, yet the SVM gets a score on the test set of 99%. In the future, I'd like to try a better training dataset that would include better negative examples.
 
